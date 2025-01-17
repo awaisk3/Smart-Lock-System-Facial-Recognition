@@ -1,0 +1,130 @@
+#include <WiFi.h>
+#include <ESP32Servo.h> // For controlling a servo lock
+#include <esp_camera.h>
+#include <Adafruit_VS1053.h> // For audio playback
+
+// Wi-Fi credentials
+const char* ssid = "Your_SSID";
+const char* password = "Your_PASSWORD";
+
+// GPIO pins for speaker and mic
+#define MIC_PIN 34
+#define SPEAKER_TX 25
+#define SPEAKER_RX 26
+
+// GPIO pin for lock control (e.g., servo or relay)
+#define LOCK_PIN 27
+Servo lockServo;
+
+// Unlock angle for servo
+const int UNLOCK_ANGLE = 90;
+const int LOCK_ANGLE = 0;
+
+// Function prototypes
+void initCamera();
+void captureImage();
+bool recognizeFace();
+void unlockDoor();
+void playAudio(const char* message);
+
+void setup() {
+  Serial.begin(115200);
+
+  // Connect to Wi-Fi
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("WiFi connected!");
+
+  // Initialize peripherals
+  lockServo.attach(LOCK_PIN);
+  lockServo.write(LOCK_ANGLE); // Start locked
+  initCamera();
+
+  // Initialize speaker
+  Adafruit_VS1053_FilePlayer speaker(SPEAKER_RX, SPEAKER_TX, -1, -1);
+  speaker.begin();
+}
+
+void loop() {
+  captureImage();
+  if (recognizeFace()) {
+    unlockDoor();
+    playAudio("Access granted. Welcome!");
+    delay(5000); // Keep door unlocked for 5 seconds
+    lockServo.write(LOCK_ANGLE);
+  } else {
+    playAudio("Access denied. Please try again.");
+  }
+  delay(1000); // Avoid spamming
+}
+
+void initCamera() {
+  camera_config_t config;
+  config.ledc_channel = LEDC_CHANNEL_0;
+  config.ledc_timer = LEDC_TIMER_0;
+  config.pin_d0 = Y2_GPIO_NUM;
+  config.pin_d1 = Y3_GPIO_NUM;
+  config.pin_d2 = Y4_GPIO_NUM;
+  config.pin_d3 = Y5_GPIO_NUM;
+  config.pin_d4 = Y6_GPIO_NUM;
+  config.pin_d5 = Y7_GPIO_NUM;
+  config.pin_d6 = Y8_GPIO_NUM;
+  config.pin_d7 = Y9_GPIO_NUM;
+  config.pin_xclk = XCLK_GPIO_NUM;
+  config.pin_pclk = PCLK_GPIO_NUM;
+  config.pin_vsync = VSYNC_GPIO_NUM;
+  config.pin_href = HREF_GPIO_NUM;
+  config.pin_sccb_sda = SIOD_GPIO_NUM;
+  config.pin_sccb_scl = SIOC_GPIO_NUM;
+  config.pin_pwdn = PWDN_GPIO_NUM;
+  config.pin_reset = RESET_GPIO_NUM;
+  config.xclk_freq_hz = 20000000;
+  config.pixel_format = PIXFORMAT_JPEG;
+
+  if (psramFound()) {
+    config.frame_size = FRAMESIZE_UXGA;
+    config.jpeg_quality = 10;
+    config.fb_count = 2;
+  } else {
+    config.frame_size = FRAMESIZE_SVGA;
+    config.jpeg_quality = 12;
+    config.fb_count = 1;
+  }
+
+  // Camera init
+  esp_err_t err = esp_camera_init(&config);
+  if (err != ESP_OK) {
+    Serial.printf("Camera init failed with error 0x%x", err);
+    return;
+  }
+}
+
+void captureImage() {
+  camera_fb_t *fb = esp_camera_fb_get();
+  if (!fb) {
+    Serial.println("Camera capture failed");
+    return;
+  }
+
+  // Image capture logic here (e.g., send image to a server for recognition)
+  esp_camera_fb_return(fb);
+}
+
+bool recognizeFace() {
+  // Dummy function for face recognition (replace with real implementation)
+  // Use TensorFlow Lite, OpenCV, or a cloud API like AWS Rekognition
+  return random(0, 2); // Simulate random face recognition for testing
+}
+
+void unlockDoor() {
+  lockServo.write(UNLOCK_ANGLE);
+  Serial.println("Door unlocked!");
+}
+
+void playAudio(const char* message) {
+  // Logic to play audio message
+  Serial.println(message); // Placeholder for actual audio playback
+}
