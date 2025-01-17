@@ -1,3 +1,6 @@
+Objective:
+To develop a smart lock system utilizing ESP32 to provide secure, touchless access control through facial recognition, complemented by audio feedback via a speaker and microphone.
+
 Features:
 Facial Recognition: Detects and verifies faces using a connected camera.
 Speaker and Microphone: Provides audio feedback or allows communication.
